@@ -1,0 +1,131 @@
+base:
+  data_dir: /mnt/storage/Devam/mammo-clip-github
+  period: 'n'
+  resume_training: false
+  epoch_to_start: 0
+  checkpoint_to_start: ''
+  train_fast: false
+  fold: 0
+  seed: 10
+  amp: true
+  mean: 0.3089279
+  std: 0.25053555408335154
+  image_size_h: 1520
+  image_size_w: 912
+  text_max_length: 256
+  loss_best: contrastive
+  data_frac: 1.0
+  zs_prompts:
+    upmc:
+    - birads category 0
+    - birads category 1
+    - birads category 2
+    rsna:
+    - no malignancy
+    - malignancy
+  output:
+    args_path: ${hydra:run.dir}
+    checkpoint: ${hydra:run.dir}/checkpoints/
+    tensorboard: ${hydra:run.dir}/tensorboard/
+data_train:
+  rsna_wo_period:
+    name: rsna
+    data_type: imagetext
+    data_dir: ${base.data_dir}
+    img_dir: train_images_png
+    data_path: /mnt/storage/Devam/mammo-clip-github/Mammo-CLIP/src/codebase/data_csv/train_folds_final_1.csv
+    text_max_length: ${base.text_max_length}
+    data_frac: 1.0
+data_zs:
+  rsna_zs:
+    name: rsna
+    data_type: image_classification
+    data_dir: ${base.data_dir}
+    img_dir: train_images_png
+    data_path: Mammo-CLIP/src/codebase/data_csv/train_folds_final_1.csv
+    text_max_length: ${base.text_max_length}
+    data_frac: 1.0
+    label_col: cancer
+dataloader:
+  train:
+    pin_memory: true
+    shuffle: true
+    drop_last: true
+    num_workers: 0
+    batch_size: 4
+  valid:
+    pin_memory: true
+    shuffle: false
+    drop_last: false
+    num_workers: 0
+    batch_size: 4
+  test:
+    pin_memory: true
+    shuffle: false
+    drop_last: false
+    num_workers: 4
+    batch_size: 6
+tokenizer:
+  source: huggingface
+  pretrained_model_name_or_path: emilyalsentzer/Bio_ClinicalBERT
+  cache_dir: ${base.data_dir}/Mammo-CLIP/src/codebase/outputs/huggingface/tokenizers
+transform:
+  train:
+    Resize:
+      size_h: ${base.image_size_h}
+      size_w: ${base.image_size_w}
+    transform:
+      affine_transform_degree: 20
+      affine_translate_percent: 0.1
+      affine_scale:
+      - 0.8
+      - 1.2
+      affine_shear: 20
+      elastic_transform_alpha: 10
+      elastic_transform_sigma: 15
+      p: 1.0
+  valid:
+    Resize:
+      size_h: ${base.image_size_h}
+      size_w: ${base.image_size_w}
+  test:
+    Resize:
+      size_h: ${base.image_size_h}
+      size_w: ${base.image_size_w}
+model:
+  name: clip_custom
+  temperature: 0.07
+  image_encoder:
+    source: cnn
+    name: tf_efficientnet_b5_ns-detect
+    pretrained: true
+    model_type: cnn
+  text_encoder:
+    source: huggingface
+    name: emilyalsentzer/Bio_ClinicalBERT
+    pretrained: true
+    gradient_checkpointing: false
+    pooling: eos
+    cache_dir: /home/devam/.cache/huggingface/hub/
+    trust_remote_code: true
+    mlm_head: true
+  projection_head:
+    name: linear
+    dropout: 0.1
+    proj_dim: 512
+optimizer:
+  name: adamw
+  config:
+    lr: 5.0e-05
+    weight_decay: 0.0001
+scheduler:
+  name: cosine
+  config:
+    total_epochs: 15
+    warmup_epochs: 1
+loss:
+  breast_clip:
+    label_smoothing: 0.0
+    i2i_weight: 1.0
+    t2t_weight: 0.5
+    loss_ratio: 1.0

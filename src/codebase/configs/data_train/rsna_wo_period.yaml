@@ -1,0 +1,8 @@
+rsna_wo_period:
+  name: "rsna"
+  data_type: "imagetext"
+  data_dir: ${base.data_dir}
+  img_dir: "train_images_png"
+  data_path: "/mnt/storage/Devam/mammo-clip-github/Mammo-CLIP/src/codebase/data_csv/train_folds_final_1.csv"
+  text_max_length: ${base.text_max_length}
+  data_frac: 1.0
