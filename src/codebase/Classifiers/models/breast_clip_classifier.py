@@ -13,7 +13,7 @@ class BreastClipClassifier(nn.Module):
         image_encoder_weights = {}
         for k in ckpt["model"].keys():
             if k.startswith("image_encoder."):
-                image_encoder_weights[".".join(k.split(".")[1:mar])] = ckpt["model"][k]
+                image_encoder_weights[".".join(k.split(".")[1:])] = ckpt["model"][k]
         self.image_encoder.load_state_dict(image_encoder_weights, strict=True)
         self.image_encoder_type = ckpt["config"]["model"]["image_encoder"]["model_type"]
         self.arch = args.arch.lower()

@@ -213,6 +213,8 @@ def train_loop(args, device):
 
     best_aucroc = 0.
     best_acc = 0
+    best_acc_cancer = 0
+    best_val = 10000
     for epoch in range(args.epochs):
         start_time = time.time()
         avg_loss = train_fn(
@@ -263,11 +265,12 @@ def train_loop(args, device):
             logger.add_scalar(f'valid/{args.label}/accuracy', accuracy, epoch + 1)
             logger.add_scalar(f'valid/{args.label}/AUC-ROC', aucroc, epoch + 1)
             logger.add_scalar(f'valid/{args.label}/f1', f1, epoch + 1)
-
-            if best_acc < accuracy:
-                best_acc = accuracy
-                model_name = f'{args.model_base_name}_seed_{args.seed}_fold{args.cur_fold}_best_acc_cancer_ver{args.VER}.pth'
-                print(f'Epoch {epoch + 1} - Save Best acc: {best_acc * 100:.4f} Model')
+            logger.add_scalar('valid/epoch-loss', avg_val_loss, epoch + 1)
+            
+            if avg_val_loss < best_val:
+                best_val = avg_val_loss
+                model_name = f'{args.model_base_name}_seed_{args.seed}_fold{args.cur_fold}_best_val_ver{args.VER}.pth'
+                print(f'Epoch {epoch + 1} - Save Best Score Model')
                 torch.save(
                     {
                         'model': model.state_dict(),
@@ -275,26 +278,41 @@ def train_loop(args, device):
                         'epoch': epoch,
                         'accuracy': accuracy,
                         'f1': f1,
+                        'val_loss': avg_val_loss,
                         'aucroc': aucroc,
                     }, args.chk_pt_path / model_name
                 )
+            # if best_acc < accuracy:
+            #     best_acc = accuracy
+            #     model_name = f'{args.model_base_name}_seed_{args.seed}_fold{args.cur_fold}_best_acc_cancer_ver{args.VER}.pth'
+            #     print(f'Epoch {epoch + 1} - Save Best acc: {best_acc * 100:.4f} Model')
+            #     torch.save(
+            #         {
+            #             'model': model.state_dict(),
+            #             'predictions': predictions,
+            #             'epoch': epoch,
+            #             'accuracy': accuracy,
+            #             'f1': f1,
+            #             'aucroc': aucroc,
+            #         }, args.chk_pt_path / model_name
+            #     )
 
-             ## Adding auc roc multiclass (ovr) for validation 
+            #  ## Adding auc roc multiclass (ovr) for validation 
 
-            if best_aucroc < aucroc:
-                best_aucroc = aucroc
-                model_name = f'{args.model_base_name}_seed_{args.seed}_fold{args.cur_fold}_best_aucroc_ver{args.VER}.pth'
-                print(f'Epoch {epoch + 1} - Save aucroc: {best_aucroc:.4f} Model')
-                torch.save(
-                    {
-                        'model': model.state_dict(),
-                        'predictions': predictions,
-                        'epoch': epoch,
-                        'accuracy': accuracy,
-                        'f1': f1,
-                        'aucroc': aucroc,
-                    }, args.chk_pt_path / model_name
-                )
+            # if best_aucroc < aucroc:
+            #     best_aucroc = aucroc
+            #     model_name = f'{args.model_base_name}_seed_{args.seed}_fold{args.cur_fold}_best_aucroc_ver{args.VER}.pth'
+            #     print(f'Epoch {epoch + 1} - Save aucroc: {best_aucroc:.4f} Model')
+            #     torch.save(
+            #         {
+            #             'model': model.state_dict(),
+            #             'predictions': predictions,
+            #             'epoch': epoch,
+            #             'accuracy': accuracy,
+            #             'f1': f1,
+            #             'aucroc': aucroc,
+            #         }, args.chk_pt_path / model_name
+            #     )
         else:
             aucroc = auroc(valid_agg[args.label].values, valid_agg['prediction'].values)
             auprc = compute_auprc(valid_agg[args.label].values, valid_agg['prediction'].values)
@@ -310,55 +328,49 @@ def train_loop(args, device):
             )
             print(f'Epoch {epoch + 1} - AUC-ROC Score: {aucroc:.4f}')
             logger.add_scalar(f'valid/{args.label}/AUC-ROC', aucroc, epoch + 1)
-            logger.add_scalar(f'valid/{args.label}/pF Score', pF, epoch + 1)
-            logger.add_scalar(f'valid/{args.label}/PR-AUC Score', prauc, epoch + 1)
-            logger.add_scalar(f'valid/{args.label}/AUPRC Score', auprc, epoch + 1)
+            logger.add_scalar('valid/epoch-loss', avg_val_loss, epoch + 1)
             logger.add_scalar(f'valid/{args.label}/+ve Acc Score', acc_cancer, epoch + 1)
 
-            if best_acc_cancer < acc_cancer:
-                best_acc_cancer = acc_cancer
-                model_name = f'{args.model_base_name}_seed_{args.seed}_fold{args.cur_fold}_best_acc_cancer_ver{args.VER}.pth'
-                print(f'Epoch {epoch + 1} - Save Best acc +ve {args.label}: {best_acc_cancer * 100:.4f} Model')
+            
+            if avg_val_loss < best_val:
+                best_val = avg_val_loss
+                model_name = f'{args.model_base_name}_seed_{args.seed}_fold{args.cur_fold}_best_val_ver{args.VER}.pth'
+                print(f'Epoch {epoch + 1} - Save Best Score Model')
                 torch.save(
                     {
                         'model': model.state_dict(),
                         'predictions': predictions,
                         'epoch': epoch,
-                        'auroc': aucroc,
-                        'prauc': prauc,
-                        'pF': pF,
-                        'auprc': auprc,
+                        'val_loss': avg_val_loss,
+                        'aucroc': aucroc,
                     }, args.chk_pt_path / model_name
                 )
+            
+            # if best_acc_cancer < acc_cancer:
+            #     best_acc_cancer = acc_cancer
+            #     model_name = f'{args.model_base_name}_seed_{args.seed}_fold{args.cur_fold}_best_acc_cancer_ver{args.VER}.pth'
+            #     print(f'Epoch {epoch + 1} - Save Best acc +ve {args.label}: {best_acc_cancer * 100:.4f} Model')
+            #     torch.save(
+            #         {
+            #             'model': model.state_dict(),
+            #             'predictions': predictions,
+            #             'epoch': epoch,
+            #             'auroc': aucroc,
+            #         }, args.chk_pt_path / model_name
+            #     )
 
-            if best_prauc < prauc:
-                best_prauc = prauc
-                model_name = f'{args.model_base_name}_seed_{args.seed}_fold{args.cur_fold}_best_prauc_ver{args.VER}.pth'
-                print(f'Epoch {epoch + 1} - Save Best prauc: {best_prauc:.4f} Model')
-                torch.save(
-                    {
-                        'model': model.state_dict(),
-                        'predictions': predictions,
-                        'epoch': epoch,
-                        'auroc': aucroc,
-                        'prauc': prauc,
-                        'pF': pF,
-                        'auprc': auprc,
-                    }, args.chk_pt_path / model_name
-                )
-
-            if best_aucroc < aucroc:
-                best_aucroc = aucroc
-                model_name = f'{args.model_base_name}_seed_{args.seed}_fold{args.cur_fold}_best_aucroc_ver{args.VER}.pth'
-                print(f'Epoch {epoch + 1} - Save aucroc: {best_aucroc:.4f} Model')
-                torch.save(
-                    {
-                        'model': model.state_dict(),
-                        'predictions': predictions,
-                        'epoch': epoch,
-                        'auroc': aucroc,
-                    }, args.chk_pt_path / model_name
-                )
+            # if best_aucroc < aucroc:
+            #     best_aucroc = aucroc
+            #     model_name = f'{args.model_base_name}_seed_{args.seed}_fold{args.cur_fold}_best_aucroc_ver{args.VER}.pth'
+            #     print(f'Epoch {epoch + 1} - Save aucroc: {best_aucroc:.4f} Model')
+            #     torch.save(
+            #         {
+            #             'model': model.state_dict(),
+            #             'predictions': predictions,
+            #             'epoch': epoch,
+            #             'auroc': aucroc,
+            #         }, args.chk_pt_path / model_name
+            #     )
 
         if args.label.lower() == "density" or (args.label.lower() == "birads" and not args.binary):
             model_name = f'{args.model_base_name}_seed_{args.seed}_fold{args.cur_fold}_best_acc_cancer_ver{args.VER}.pth'
@@ -492,6 +504,7 @@ def train_fn(train_loader, model, criterion, optimizer, epoch, args, scheduler, 
     # At the end of the epoch, log the average loss
     avg_epoch_loss = total_loss / (batch_count if batch_count > 0 else 1)
     logger.add_scalar('train/epoch_loss', avg_epoch_loss, epoch)
+    logger.add_scalar('train/epoch-loss', losses.avg, epoch)
     # Reset accumulators for the next epoch
     total_loss = 0.0
     batch_count = 0

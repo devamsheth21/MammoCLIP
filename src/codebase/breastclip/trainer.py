@@ -188,13 +188,10 @@ def run(local_rank, cfg: Dict):
                 clip_image_encoder
             )
 
-<<<<<<< HEAD
             # acc_zero_shot, f1_zero_shot, auroc_zero_shot = evaluate_clip_zs(
             #     model, device, loss_func, zs_dataloaders, epoch, total_epochs,
             #     clip_image_encoder, datamodule, zs_prompts)
 
-=======
->>>>>>> dcce69a160c3c10fe7005d66c87470aa24292df0
             val_loss_dict_per_dataset = validate(
                 model, device, loss_func, valid_dataloaders, epoch, total_epochs, local_rank, cfg["base"]["amp"],
                 clip_image_encoder
@@ -219,14 +216,11 @@ def run(local_rank, cfg: Dict):
                 util.GlobalEnv.get().summary_writer.valid.add_scalar(f"loss_per_epoch/{loss_key}",
                                                                      avg_val_loss_per_loss[loss_key], epoch + 1)
 
-<<<<<<< HEAD
             # util.GlobalEnv.get().summary_writer.valid.add_scalar("Accuracy_zeroshot", acc_zero_shot, epoch + 1)
             # util.GlobalEnv.get().summary_writer.valid.add_scalar("F1_zeroshot", f1_zero_shot, epoch + 1)
             # if auroc_zero_shot > 0:
             #     util.GlobalEnv.get().summary_writer.valid.add_scalar("Auroc_zeroshot", auroc_zero_shot, epoch + 1)
 
-=======
->>>>>>> dcce69a160c3c10fe7005d66c87470aa24292df0
             if util.GlobalEnv.get().master:
                 # checkpoint
                 filename = check_pt_path / "model"

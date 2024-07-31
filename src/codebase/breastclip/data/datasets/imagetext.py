@@ -62,19 +62,12 @@ class ImageTextDataset(Dataset):
         return len(self.df)
 
     def _get_img_path(self, study_id, image_id):
-<<<<<<< HEAD
         if self.dataset.lower() == 'upmc':
             return self.root_dir / self.img_dir / f'Patient_{study_id}' / image_id
         elif self.dataset.lower() == 'rsna':
             return self.root_dir / self.img_dir / f'{str(study_id)}' / f'{str(image_id)}.png'
         else:
             return self.root_dir / self.img_dir / f'{str(study_id)}' / image_id
-=======
-        if self.dataset.lower() == "upmc":
-            return self.root_dir / self.img_dir / f"Patient_{study_id}" / image_id
-        elif self.dataset.lower() == "vindr":
-            return self.root_dir / self.img_dir / f"{str(study_id)}" / image_id
->>>>>>> dcce69a160c3c10fe7005d66c87470aa24292df0
 
     def __getitem__(self, index):
         view_list = None
