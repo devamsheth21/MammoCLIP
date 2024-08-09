@@ -317,12 +317,12 @@ def main():
     parser.add_argument('--base_folder', type=str,
                         default='/restricted/projectnb/batmanlab/shawn24/PhD/RSNA_Breast_Imaging/Dataset/RSNA_Cancer_Detection',
                         help='Base folder for dataset and outputs')
-
+    parser.add_argument('--output_folder', type=str, default='/media/Datacenter_storage/Devam/mammo-clip-rsna/', help='Output folder for processed images')
     args = parser.parse_args()
 
-    save_folder = os.path.join(args.base_folder, f"mammo_clip/{args.phase}_images_png/")
+    save_folder = os.path.join(args.output_folder, f"mammo_clip/{args.phase}_images_png/")
     img_path = os.path.join(args.base_folder, f"{args.phase}_images/")
-    j2k_folder = os.path.join(args.base_folder, "tmp/j2k/")
+    j2k_folder = os.path.join(args.output_folder, "tmp/j2k/")
     df = pd.read_csv(os.path.join(args.base_folder, f"{args.phase}.csv"))
     SIZE = (args.width, args.height)
 

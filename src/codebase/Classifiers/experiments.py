@@ -34,7 +34,7 @@ def do_experiments(args, device):
         args.binary = True
     else:
         args.binary = False
-    if args.label.lower() == "density":
+    if args.label.lower() == "density" and args.dataset.lower() == "rsna":
         args.df[args.label] = args.df[args.label].map({'A': 0,'B' : 1, 'C' : 2, 'D' : 3})
     print(f"df shape: {args.df.shape}")
     print(args.df.columns)
@@ -57,11 +57,12 @@ def do_experiments(args, device):
             cl = 4 if args.label.lower() == "density" else 1
             ### for testing ###
             # model_name = f'{args.model_base_name}_seed_{args.seed}_fold0_best_acc_cancer_ver{args.VER}.pth'
-            model_name = f'{args.model_base_name}_seed_{args.seed}_fold0_best_aucroc_ver{args.VER}.pth'
-            cpath = '/mnt/storage/Devam/mammo-clip-github/checkpoints/RSNA/Classifier/upmc_breast_clip_det_b5_period_n_lp/lr_5e-05_epochs_30_weighted_BCE_y_BIRADS_data_frac_1.0/'
-            model_state = torch.load(cpath + model_name, map_location='cpu')
+            # model_name = f'{args.model_base_name}_seed_{args.seed}_fold0_best_aucroc_ver{args.VER}.pth'
+            # cpath = '/mnt/storage/Devam/mammo-clip-github/checkpoints/RSNA/Classifier/upmc_breast_clip_det_b5_period_n_lp/lr_5e-05_epochs_30_weighted_BCE_y_BIRADS_data_frac_1.0/'
+            # model_name = 'upmc_breast_clip_det_b5_period_n_lp_seed_10_fold0_best_val_verBINMLO.pth'
+            model_state = torch.load(args.checkpoints, map_location='cpu')
             ckpt = torch.load(args.clip_chk_pt_path, map_location="cpu")
-            model = BreastClipClassifier(args, ckpt=ckpt, n_class=1)
+            model = BreastClipClassifier(args, ckpt=ckpt, n_class=cl)
             model.load_state_dict(model_state['model'])
             model = model.to(device)
             args.valid_folds = args.df
@@ -83,13 +84,12 @@ def do_experiments(args, device):
 
         oof_df = pd.concat([oof_df, _oof_df])
         print(oof_df.head(10))
-    if args.dataset.lower() == "rsna":
+    if args.dataset.lower() == "rsna" or args.dataset.lower() == "other":
         oof_df = oof_df.reset_index(drop=True)
         if args.label.lower() == "density" or (args.label.lower() == "birads" and not args.binary):
             oof_df['prediction_bin'] = oof_df['y_preds'].apply(lambda x: np.argmax(x, axis=0))
             print(oof_df.head(10))
             print('================ CV ================')
-            print(oof_df['y_preds'].head(10))
             if not args.binary:
                 aucroc = auroc(gt=oof_df[args.label].values, pred=np.array(oof_df['y_preds'].tolist()))
             else:
@@ -97,22 +97,22 @@ def do_experiments(args, device):
             print(f'AUC-ROC: {aucroc}')
             print('\n')
             if args.label.lower() == "density":
-                target_names = ['A', 'B', 'C', 'D']
+                target_names = ['Fatty', 'scattered fibroglandular densities', 'heterogeneously dense', 'extremely dense']
             elif args.label.lower() == "birads":
                 if not args.binary:
                     target_names = ['Birads 0', 'Birads 1', 'Birads 2']
                 else:
                     target_names = ['Birads 0', 'Birads 1']
-            print(classification_report(oof_df[args.label].values, oof_df['prediction_bin'].values, target_names=target_names))
+            print(classification_report(oof_df[args.label].values, oof_df['prediction_bin'].values, target_names=target_names,digits=4))
         else:
             oof_df['prediction_bin'] = oof_df['prediction'].apply(lambda x: 1 if x >= 0.5 else 0)
             if args.label.lower() == "birads":
                 target_names = ['Birads 0', 'Birads 1']
-                print(classification_report(oof_df[args.label].values, oof_df['prediction_bin'].values, target_names=target_names))
+                print(classification_report(oof_df[args.label].values, oof_df['prediction_bin'].values, target_names=target_names,digits=4))
             # oof_df_agg = oof_df[['patient_id', 'laterality', args.label, 'prediction', 'fold']].groupby(
             #     ['patient_id', 'laterality']).mean()
             ### for stitched images ###
-            oof_df_agg = oof_df[['patient_id', args.label, 'prediction', 'fold']]
+            oof_df_agg = oof_df
 
 
             print(oof_df_agg.head(10))
@@ -123,9 +123,8 @@ def do_experiments(args, device):
             oof_df_agg_cancer['prediction'] = oof_df_agg_cancer['prediction'].apply(lambda x: 1 if x >= 0.5 else 0)
             acc_cancer = compute_accuracy_np_array(oof_df_agg_cancer[args.label].values,
                                                 oof_df_agg_cancer['prediction'].values)
-            print(f'AUC-ROC: {aucroc}, acc +ve {args.label} patients: {acc_cancer * 100}')
+            print(f'AUC-ROC: {aucroc}')
             print('\n')
-            print(oof_df.head(10))
             print(f"Results shape: {oof_df.shape}")
             print('\n')
         print(args.output_path)
@@ -601,13 +600,13 @@ def valid_fn(valid_loader, model, criterion, args, device, epoch=1, mapper=None,
 
     return y_pred_list,losses.avg, predictions
 
-def test_fn(test_loader, model, args, device ,epoch=0,mapper=None):
+def test_fn(test_loader, model, args, device ,epoch=0,mapper=None,attr_embs=None):
     model.eval()
     preds = []
     y_pred_list=[]
     start = time.time()
-
-    progress_iter = tqdm(enumerate(test_loader), desc=f"[{epoch + 1:03d}/{args.epochs:03d} epoch valid]",
+    args.epochs = 1
+    progress_iter = tqdm(enumerate(test_loader), desc=f"[{epoch + 1:03d}/{args.epochs:03d} epoch test]",
                          total=len(test_loader))
     for step, data in progress_iter:
         inputs = data['x'].to(device)
@@ -668,7 +667,7 @@ def test_fn(test_loader, model, args, device ,epoch=0,mapper=None):
             with torch.no_grad():
                 y_preds = model(inputs)
 
-        if args.label == "density" or (args.label.lower() == "birads" and not args.binary):
+        if args.label.lower() == "density" or (args.label.lower() == "birads" and not args.binary):
             _, predicted = torch.max(y_preds, 1)
             preds.extend(predicted.cpu().numpy())
             y_pred_list.extend(y_preds.softmax(dim=1).cpu().numpy())
@@ -687,7 +686,7 @@ def test_fn(test_loader, model, args, device ,epoch=0,mapper=None):
                   'Elapsed {remain:s} '
                   .format(step, len(test_loader),
                           remain=timeSince(start, float(step + 1) / len(test_loader))))
-    if args.label == "density" or (args.label.lower() == "birads" and not args.binary):
+    if args.label.lower() == "density" or (args.label.lower() == "birads" and not args.binary):
         predictions = np.array(preds)
     else:
         predictions = np.concatenate(preds)

@@ -26,8 +26,14 @@ class MammoDataset(Dataset):
         return len(self.df)
 
     def __getitem__(self, idx):
+        
+        if self.dataset.lower() == "other":
+            img_path = self.dir_path / str(self.df.iloc[idx]['image'].split('/')[-1])
+        else:
+            img_path = self.dir_path / str(self.df.iloc[idx]['patient_id']) / str(self.df.iloc[idx]['image_id'])
+
         data = self.df.iloc[idx]
-        img_path = self.dir_path / str(self.df.iloc[idx]['patient_id']) / str(self.df.iloc[idx]['image_id'])
+        # img_path = self.dir_path / str(self.df.iloc[idx]['patient_id']) / str(self.df.iloc[idx]['image_id'])
         if self.dataset.lower() == "rsna":
             img_path = f'{img_path}.png'
         if (
@@ -59,6 +65,8 @@ class MammoDataset(Dataset):
             img = torch.tensor((img - self.args.mean) / self.args.std, dtype=torch.float32)
         else:
             img = np.array(img)
+            if self.args.img_size[0] != 1520 and self.args.img_size[1] != 912:
+                img = cv2.resize(img, (int(self.args.img_size[0]), int(self.args.img_size[1])))
             img = img.astype('float32')
             img -= img.min()
             img /= img.max()

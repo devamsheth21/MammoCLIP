@@ -96,10 +96,11 @@ def main(args):
     args.chk_pt_path = chk_pt_path
     args.output_path = output_path
     args.tb_logs_path = tb_logs_path
-
-    os.makedirs(chk_pt_path, exist_ok=True)
     os.makedirs(output_path, exist_ok=True)
-    os.makedirs(tb_logs_path, exist_ok=True)
+    if not args.inference_mode == "y":
+        os.makedirs(chk_pt_path, exist_ok=True)
+        # os.makedirs(output_path, exist_ok=True)
+        os.makedirs(tb_logs_path, exist_ok=True)
     print("====================> Paths <====================")
     print(f"checkpoint_path: {chk_pt_path}")
     print(f"output_path: {output_path}")

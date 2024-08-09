@@ -10,6 +10,7 @@ from tqdm import tqdm
 import matplotlib.pyplot as plt
 import skimage.io
 import skimage.measure as skmeas
+import argparse
 
 def stitch_images(x, y):
     diff = abs(x.shape[0] - y.shape[0])
@@ -42,11 +43,11 @@ def stitch_images(x, y):
 
 
 def main():
-    df = pd.read_csv('/mnt/storage/Devam/mammo-clip-github/image_preprocessing-aisha/train_corrected.csv')
+    df = pd.read_csv(os.path.join(args.input_csv,'train_corrected.csv'))
 
-    img_dir = '/mnt/storage/breast_cancer_kaggle/mammo_clip/train_images_png/'
-    output_folder = '/mnt/storage/Devam/mammo-clip-github/image_preprocessing-aisha/rsna-stitched-images-orgdim-flipped'
-    output_folder_resized = '/mnt/storage/Devam/mammo-clip-github/image_preprocessing-aisha/rsna-stitched-images-512-flipped'
+    img_dir = args.img_dir + 'train_images_png/'
+    output_folder = args.img_dir + 'rsna-stitched-images-orgdim-flipped'
+    output_folder_resized = args.img_dir + 'rsna-stitched-images-512-flipped'
     df_new = pd.DataFrame(columns=['site_id', 'patient_id', 'image_id', 'view', 'age', 'cancer', 'biopsy', 'invasive', 'BIRADS', 'implant', 'density', 'machine_id', 'difficult_negative_case'])
 
     df_updated = df[(df['view'] == 'MLO') | (df['view'] == 'CC')]
@@ -55,7 +56,7 @@ def main():
 
     grouped_df = df_updated.groupby(['patient_id', 'view'])
 
-    for i, ((patient_id, view), patient_rows) in tqdm(enumerate(grouped_df)):
+    for (patient_id, view), patient_rows in tqdm(grouped_df):
         lateralities = patient_rows['laterality'].unique()
         if 'L' in lateralities and 'R' in lateralities:
             image_ids_L = patient_rows[patient_rows['laterality'] == 'L']['image_id'].values
@@ -113,8 +114,13 @@ def main():
                                         'machine_id': patient_rows['machine_id'].values[0],
                                         'difficult_negative_case': patient_rows['difficult_negative_case'].values[0]}, ignore_index=True)
 
-    df_new.to_csv('/mnt/storage/Devam/mammo-clip-github/image_preprocessing-aisha/rsna_stitched_images-flipped.csv', index=False)
+    df_new.to_csv(os.path.join(args.output_csv,'rsna_stitched_images-flipped.csv'), index=False)
 
 
 if __name__ == "__main__":
+    argparser = argparse.ArgumentParser()
+    argparser.add_argument('--output_csv',type=str,default= '/home/devam/Datacenter_storage/Devam/mammo-clip-rsna/MammoCLIP/src/codebase/data_csv/')
+    argparser.add_argument('--input_csv', type=str, default='/home/devam/Datacenter_storage/Devam/mammo-clip-rsna/MammoCLIP/src/codebase/data_csv/')
+    argparser.add_argument('--img_dir', type=str, default='/media/Datacenter_storage/Devam/mammo-clip-rsna/mammo_clip/')
+    args = argparser.parse_args()
     main()

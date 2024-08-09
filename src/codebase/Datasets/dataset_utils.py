@@ -34,7 +34,7 @@ class normalize(object):
 
 
 def get_transforms(args):
-    if (args.dataset.lower() == "rsna" or args.dataset.lower() == "vindr") and args.model_type.lower() == "classifier":
+    if (args.dataset.lower() == "rsna" or args.dataset.lower() == "vindr" or args.dataset.lower()=="other") and args.model_type.lower() == "classifier":
         if args.img_size[0] == 1520 and args.img_size[1] == 912:
             return Compose([
                 HorizontalFlip(),
